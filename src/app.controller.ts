@@ -6,54 +6,59 @@ import {
   Put,
   Param,
   Body,
+  HttpCode,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { ReportType, data } from './data';
-import { v4 as uuid } from 'uuid';
+import { ReportType } from './data';
+import { AppService } from 'src/app.service';
 
 @Controller('report/:type')
 export class AppController {
+  constructor(private readonly appService: AppService) {}
+
   @Get()
   getAllReports(@Param('type') type: string) {
     const reportType =
       type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
-    return data.report.filter((report) => report.type === reportType);
+    return this.appService.getAllReports(reportType);
   }
 
   @Get(':id')
-  getReportById(@Param('type') type: string, @Param('id') id: string) {
+  getReportById(
+    @Param('type') type: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const reportType =
       type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
 
-    return data.report.find(
-      (report) => report.type === reportType && report.id === id,
-    );
+    return this.appService.getReportById(reportType, id);
   }
 
   @Post()
   createReport(
-    @Body() { amount, source }: { source: string; amount: number },
+    @Body() body: { source: string; amount: number },
     @Param('type') type: string,
   ) {
-    const newReport = {
-      id: uuid(),
-      source: source,
-      amount: amount,
-      created_at: new Date(),
-      updated_at: new Date(),
-      type: type === 'income' ? ReportType.INCOME : ReportType.EXPENSE,
-    };
+    const reportType =
+      type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
 
-    data.report.push(newReport);
-    return newReport;
+    return this.appService.createReport(reportType, body);
   }
 
   @Put(':id')
-  updateReport() {
-    return 'updated';
-  }
+  updateReport(
+    @Param('type') type: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { amount: number; source: string },
+  ) {
+    const reportType =
+      type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
 
+    return this.appService.updateReport(reportType, id, body);
+  }
+  @HttpCode(204)
   @Delete(':id')
-  deleteReport() {
-    return 'deleted';
+  deleteReport(@Param('id', ParseUUIDPipe) id: string) {
+    this.appService.deleteReport(id);
   }
 }
